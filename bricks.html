@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tetris Neo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-VOTRE_PUBLISHER_ID"
+     crossorigin="anonymous"></script>
+  
+  <!-- Google Analytics (optionnel) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID');
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: 'Orbitron', monospace;
+      color: #00ffff;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(255, 255, 0, 0.1) 0%, transparent 50%);
+      animation: pulse 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .game-container {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      border-radius: 20px;
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      box-shadow: 
+        0 0 50px rgba(0, 255, 255, 0.2),
+        inset 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .game-board {
+      position: relative;
+    }
+
+    canvas {
+      border: 3px solid #00ffff;
+      border-radius: 10px;
+      box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.5),
+        inset 0 0 20px rgba(0, 0, 0, 0.5);
+      background: linear-gradient(145deg, #000814, #001d3d);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      min-width: 200px;
+    }
+
+    .info-panel {
+      background: linear-gradient(145deg, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.05));
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .info-panel h3 {
+      font-size: 1.2em;
+      margin-bottom: 15px;
+      color: #00ffff;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+      font-weight: 700;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 1.1em;
+    }
+
+    .stat-value {
+      color: #ffffff;
+      font-weight: 700;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    }
+
+    .next-piece-container {
+      background: linear-gradient(145deg, rgba(255, 0, 255, 0.1), rgba(255, 0, 255, 0.05));
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 0, 255, 0.3);
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .next-piece-container h3 {
+      color: #ff00ff;
+      text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      width: 300px;
+    }
+
+    .btn {
+      background: linear-gradient(145deg, #00ffff, #0088cc);
+      color: #000;
+      border: none;
+      padding: 15px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 12px;
+      font-family: 'Orbitron', monospace;
+      transition: all 0.2s ease;
+      box-shadow: 
+        0 6px 15px rgba(0, 255, 255, 0.3),
+        inset 0 2px 5px rgba(255, 255, 255, 0.2);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 20px rgba(0, 255, 255, 0.4),
+        inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 
+        0 4px 10px rgba(0, 255, 255, 0.3),
+        inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-rotate {
+      grid-column: 2;
+      background: linear-gradient(145deg, #ff00ff, #cc0088);
+      color: #fff;
+    }
+
+    .btn-down {
+      grid-column: 1 / -1;
+      background: linear-gradient(145deg, #ffff00, #cccc00);
+      color: #000;
+    }
+
+    .game-over {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(145deg, rgba(255, 0, 0, 0.9), rgba(139, 0, 0, 0.9));
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      border: 3px solid #ff0000;
+      box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .game-over h2 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255, 0, 0, 1);
+      animation: glow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 20px rgba(255, 0, 0, 1); }
+      to { text-shadow: 0 0 30px rgba(255, 0, 0, 1), 0 0 40px rgba(255, 0, 0, 0.8); }
+    }
+
+    .restart-btn {
+      background: linear-gradient(145deg, #00ff00, #008800);
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Orbitron', monospace;
+      margin-top: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .restart-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+    }
+
+    .next-canvas {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto;
+      border: 1px solid rgba(255, 0, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .ad-container {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .ad-banner-top {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+
+    .ad-banner-bottom {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+
+    .ad-sidebar {
+      width: 160px;
+      height: 600px;
+    }
+
+    @media (max-width: 3768px) {
+	  .ad-banner-top, .ad-banner-bottom {
+		position: relative;
+		transform: none;
+		left: auto;
+		top: auto;
+		bottom: auto;
+	  }
+
+	  .ad-sidebar {
+		width: 320px;
+		height: 100px;
+	  }
+
+	  .game-container {
+		flex-direction: column;
+		gap: 20px;
+		padding: 20px;
+	  }
+
+	  .sidebar {
+		flex-direction: row;
+		gap: 20px;
+		min-width: auto;
+	  }
+
+	  .controls {
+		bottom: 1220px;
+		width: 3280px;
+		z-index: 1000;
+	  }
+	
+
+    }
+  </style>
+</head>
+<body>
+  <!-- Bannière publicitaire top -->
+  <div class="ad-banner-top">
+    <div class="ad-container">
+      <!-- Remplacez par votre code AdSense -->
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-VOTRE_PUBLISHER_ID"
+           data-ad-slot="VOTRE_SLOT_ID"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+
+  <div class="game-container">
+    <div class="game-board">
+      <div id="canvas-container"></div>
+    </div>
+    
+    <div class="sidebar">
+      <div class="info-panel">
+        <h3>STATISTIQUES</h3>
+        <div class="stat">
+          <span>Score</span>
+          <span class="stat-value" id="score">0</span>
+        </div>
+        <div class="stat">
+          <span>Niveau</span>
+          <span class="stat-value" id="level">1</span>
+        </div>
+        <div class="stat">
+          <span>Lignes</span>
+          <span class="stat-value" id="lines">0</span>
+        </div>
+      </div>
+      
+      <div class="next-piece-container">
+        <h3>SUIVANT</h3>
+        <canvas id="next-piece-canvas" class="next-canvas" width="80" height="80"></canvas>
+      </div>
+
+      <!-- Publicité sidebar -->
+      <div class="ad-container">
+        <ins class="adsbygoogle ad-sidebar"
+             style="display:block"
+             data-ad-client="ca-pub-VOTRE_PUBLISHER_ID"
+             data-ad-slot="VOTRE_SLOT_ID"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bannière publicitaire bottom -->
+  <div class="ad-banner-bottom">
+    <div class="ad-container">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-VOTRE_PUBLISHER_ID"
+           data-ad-slot="VOTRE_SLOT_ID"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="leftBtn">← GAUCHE</button>
+    <button class="btn btn-rotate" id="rotateBtn">↻ TOURNER</button>
+    <button class="btn" id="rightBtn">DROITE →</button>
+    <button class="btn btn-down" id="downBtn">↓ DESCENDRE</button>
+  </div>
+
+  <div class="game-over" id="gameOverScreen" style="display: none;">
+    <h2>GAME OVER</h2>
+    <p>Score final: <span id="finalScore">0</span></p>
+    <button class="restart-btn" onclick="restartGame()">RECOMMENCER</button>
+  </div>
+
+  <script>
+    const GRID_WIDTH = 10;
+    const GRID_HEIGHT = 20;
+    const BLOCK_SIZE = 32;
+    let grid = [];
+    let currentPiece = null;
+    let nextPiece = null;
+    let score = 0;
+    let level = 1;
+    let linesCleared = 0;
+    let fallSpeed = 60;
+    let frameCount = 0;
+    let moveDirection = 0;
+    let isSpeedingUp = false;
+    let gameOver = false;
+    let moveCooldown = 0;
+    const MOVE_COOLDOWN_MAX = 8;
+    let particles = [];
+
+    const tetrominoes = [
+      [[1, 1, 1, 1]], // I
+      [[1, 1], [1, 1]], // O
+      [[0, 1, 0], [1, 1, 1]], // T
+      [[1, 1, 0], [0, 1, 1]], // S
+      [[0, 1, 1], [1, 1, 0]], // Z
+      [[1, 0, 0], [1, 1, 1]], // J
+      [[0, 0, 1], [1, 1, 1]], // L
+    ];
+
+    const colors = [
+      '#00ffff', // I - Cyan
+      '#ffff00', // O - Yellow
+      '#ff00ff', // T - Magenta
+      '#00ff00', // S - Green
+      '#ff4444', // Z - Red
+      '#4444ff', // J - Blue
+      '#ff8800', // L - Orange
+    ];
+
+    const shadowColors = [
+      'rgba(0, 255, 255, 0.3)',
+      'rgba(255, 255, 0, 0.3)',
+      'rgba(255, 0, 255, 0.3)',
+      'rgba(0, 255, 0, 0.3)',
+      'rgba(255, 68, 68, 0.3)',
+      'rgba(68, 68, 255, 0.3)',
+      'rgba(255, 136, 0, 0.3)',
+    ];
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = random(-2, 2);
+        this.vy = random(-3, -1);
+        this.life = 255;
+        this.color = color;
+        this.size = random(2, 6);
+      }
+      
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1;
+        this.life -= 3;
+      }
+      
+      draw() {
+        push();
+        fill(red(this.color), green(this.color), blue(this.color), this.life);
+        noStroke();
+        ellipse(this.x, this.y, this.size);
+        pop();
+      }
+      
+      isDead() {
+        return this.life <= 0;
+      }
+    }
+
+    function setup() {
+      let canvas = createCanvas(GRID_WIDTH * BLOCK_SIZE, GRID_HEIGHT * BLOCK_SIZE);
+      canvas.parent('canvas-container');
+      initGrid();
+      spawnPiece();
+      spawnNextPiece();
+      setupControls();
+    }
+
+    function setupControls() {
+      const leftBtn = document.getElementById('leftBtn');
+      const rightBtn = document.getElementById('rightBtn');
+      const rotateBtn = document.getElementById('rotateBtn');
+      const downBtn = document.getElementById('downBtn');
+
+      // Prevent default behavior
+      [leftBtn, rightBtn, rotateBtn, downBtn].forEach(btn => {
+        btn.addEventListener('touchstart', (e) => e.preventDefault());
+        btn.addEventListener('touchmove', (e) => e.preventDefault());
+        btn.addEventListener('touchend', (e) => e.preventDefault());
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+      });
+
+      // Left button
+      leftBtn.addEventListener('touchstart', () => moveDirection = -1);
+      leftBtn.addEventListener('touchend', () => { moveDirection = 0; moveCooldown = 0; });
+      leftBtn.addEventListener('mousedown', () => moveDirection = -1);
+      leftBtn.addEventListener('mouseup', () => { moveDirection = 0; moveCooldown = 0; });
+      leftBtn.addEventListener('mouseleave', () => { moveDirection = 0; moveCooldown = 0; });
+
+      // Right button
+      rightBtn.addEventListener('touchstart', () => moveDirection = 1);
+      rightBtn.addEventListener('touchend', () => { moveDirection = 0; moveCooldown = 0; });
+      rightBtn.addEventListener('mousedown', () => moveDirection = 1);
+      rightBtn.addEventListener('mouseup', () => { moveDirection = 0; moveCooldown = 0; });
+      rightBtn.addEventListener('mouseleave', () => { moveDirection = 0; moveCooldown = 0; });
+
+      // Rotate button
+      rotateBtn.addEventListener('touchstart', () => rotatePiece());
+      rotateBtn.addEventListener('mousedown', () => rotatePiece());
+
+      // Down button
+      downBtn.addEventListener('touchstart', () => isSpeedingUp = true);
+      downBtn.addEventListener('touchend', () => isSpeedingUp = false);
+      downBtn.addEventListener('mousedown', () => isSpeedingUp = true);
+      downBtn.addEventListener('mouseup', () => isSpeedingUp = false);
+      downBtn.addEventListener('mouseleave', () => isSpeedingUp = false);
+    }
+
+    function initGrid() {
+      grid = Array(GRID_HEIGHT).fill().map(() => Array(GRID_WIDTH).fill(null));
+    }
+
+    function spawnPiece() {
+      if (nextPiece) {
+        currentPiece = nextPiece;
+        currentPiece.x = floor(GRID_WIDTH / 2) - floor(currentPiece.shape[0].length / 2);
+        currentPiece.y = 0;
+        spawnNextPiece();
+      } else {
+        const type = floor(random(tetrominoes.length));
+        currentPiece = {
+          shape: tetrominoes[type],
+          color: colors[type],
+          type: type,
+          x: floor(GRID_WIDTH / 2) - floor(tetrominoes[type][0].length / 2),
+          y: 0
+        };
+        spawnNextPiece();
+      }
+      
+      if (!isValidPosition(currentPiece)) {
+        gameOver = true;
+        showGameOver();
+      }
+    }
+
+    function spawnNextPiece() {
+      const type = floor(random(tetrominoes.length));
+      nextPiece = {
+        shape: tetrominoes[type],
+        color: colors[type],
+        type: type,
+        x: 0,
+        y: 0
+      };
+    }
+
+    function draw() {
+      if (gameOver) return;
+
+      // Gradient background
+      for (let i = 0; i <= height; i++) {
+        let inter = map(i, 0, height, 0, 1);
+        let c = lerpColor(color(0, 8, 20), color(0, 29, 61), inter);
+        stroke(c);
+        line(0, i, width, i);
+      }
+
+      drawGrid();
+      drawGhost();
+      if (currentPiece) drawPiece(currentPiece);
+      
+      // Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].isDead()) {
+          particles.splice(i, 1);
+        }
+      }
+
+      frameCount++;
+      if (frameCount >= (isSpeedingUp ? 3 : fallSpeed)) {
+        moveDown();
+        frameCount = 0;
+      }
+
+      if (moveDirection !== 0 && moveCooldown <= 0) {
+        let newPiece = { ...currentPiece, x: currentPiece.x + moveDirection };
+        if (isValidPosition(newPiece)) {
+          currentPiece.x = newPiece.x;
+          moveCooldown = MOVE_COOLDOWN_MAX;
+        }
+      }
+      if (moveCooldown > 0) moveCooldown--;
+      
+      updateInfo();
+      drawNextPiecePreview();
+    }
+
+    function drawGrid() {
+      // Grid lines
+      stroke(0, 50, 100, 100);
+      strokeWeight(0.5);
+      for (let x = 0; x <= GRID_WIDTH; x++) {
+        line(x * BLOCK_SIZE, 0, x * BLOCK_SIZE, height);
+      }
+      for (let y = 0; y <= GRID_HEIGHT; y++) {
+        line(0, y * BLOCK_SIZE, width, y * BLOCK_SIZE);
+      }
+
+      // Placed blocks
+      for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+          if (grid[y][x]) {
+            drawBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, grid[y][x].color, true);
+          }
+        }
+      }
+    }
+
+    function drawGhost() {
+      if (!currentPiece) return;
+      
+      let ghostPiece = { ...currentPiece };
+      while (isValidPosition({ ...ghostPiece, y: ghostPiece.y + 1 })) {
+        ghostPiece.y++;
+      }
+      
+      if (ghostPiece.y !== currentPiece.y) {
+        fill(red(currentPiece.color), green(currentPiece.color), blue(currentPiece.color), 50);
+        stroke(red(currentPiece.color), green(currentPiece.color), blue(currentPiece.color), 100);
+        strokeWeight(1);
+        
+        for (let y = 0; y < ghostPiece.shape.length; y++) {
+          for (let x = 0; x < ghostPiece.shape[y].length; x++) {
+            if (ghostPiece.shape[y][x]) {
+              rect((ghostPiece.x + x) * BLOCK_SIZE, (ghostPiece.y + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            }
+          }
+        }
+      }
+    }
+
+    function drawPiece(piece) {
+      if (!piece) return;
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            drawBlock((piece.x + x) * BLOCK_SIZE, (piece.y + y) * BLOCK_SIZE, piece.color);
+          }
+        }
+      }
+    }
+
+    function drawBlock(x, y, color, isPlaced = false) {
+      push();
+      
+      // Main block
+      fill(color);
+      noStroke();
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+      
+      // Glow effect
+      if (!isPlaced) {
+        fill(red(color), green(color), blue(color), 100);
+        rect(x - 2, y - 2, BLOCK_SIZE + 4, BLOCK_SIZE + 4);
+      }
+      
+      // Highlight
+      fill(255, 255, 255, 80);
+      rect(x + 2, y + 2, BLOCK_SIZE - 8, BLOCK_SIZE - 8);
+      
+      // Border
+      stroke(255, 255, 255, 150);
+      strokeWeight(1);
+      noFill();
+      rect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+      
+      pop();
+    }
+
+    function drawNextPiecePreview() {
+      const canvas = document.getElementById('next-piece-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 80, 80);
+      
+      if (nextPiece) {
+        const blockSize = 16;
+        const offsetX = (80 - nextPiece.shape[0].length * blockSize) / 2;
+        const offsetY = (80 - nextPiece.shape.length * blockSize) / 2;
+        
+        ctx.fillStyle = nextPiece.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        
+        for (let y = 0; y < nextPiece.shape.length; y++) {
+          for (let x = 0; x < nextPiece.shape[y].length; x++) {
+            if (nextPiece.shape[y][x]) {
+              const blockX = offsetX + x * blockSize;
+              const blockY = offsetY + y * blockSize;
+              
+              // Dessiner le bloc principal
+              ctx.fillRect(blockX, blockY, blockSize, blockSize);
+              
+              // Dessiner la bordure
+              ctx.strokeRect(blockX, blockY, blockSize, blockSize);
+              
+              // Effet de brillance
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+              ctx.fillRect(blockX + 2, blockY + 2, blockSize - 6, blockSize - 6);
+              ctx.fillStyle = nextPiece.color;
+            }
+          }
+        }
+      }
+    }
+
+    function isValidPosition(piece) {
+      if (!piece) return false;
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            let newX = piece.x + x;
+            let newY = piece.y + y;
+            if (newX < 0 || newX >= GRID_WIDTH || newY >= GRID_HEIGHT || (newY >= 0 && grid[newY][newX])) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function moveDown() {
+      if (!currentPiece) return;
+      let newPiece = { ...currentPiece, y: currentPiece.y + 1 };
+      if (isValidPosition(newPiece)) {
+        currentPiece.y++;
+      } else {
+        placePiece();
+        clearLines();
+        spawnPiece();
+      }
+    }
+
+    function placePiece() {
+      if (!currentPiece) return;
+      for (let y = 0; y < currentPiece.shape.length; y++) {
+        for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          if (currentPiece.shape[y][x]) {
+            let gridY = currentPiece.y + y;
+            if (gridY >= 0) {
+              grid[gridY][currentPiece.x + x] = {
+                color: currentPiece.color,
+                type: currentPiece.type
+              };
+            }
+          }
+        }
+      }
+      currentPiece = null;
+    }
+
+    function clearLines() {
+      let lines = 0;
+      let clearedRows = [];
+      
+      for (let y = GRID_HEIGHT - 1; y >= 0; y--) {
+        if (grid[y].every(cell => cell !== null)) {
+          clearedRows.push(y);
+          // Create particles for cleared line
+          for (let x = 0; x < GRID_WIDTH; x++) {
+            for (let i = 0; i < 3; i++) {
+              particles.push(new Particle(
+                x * BLOCK_SIZE + BLOCK_SIZE/2,
+                y * BLOCK_SIZE + BLOCK_SIZE/2,
+                grid[y][x].color
+              ));
+            }
+          }
+          
+          grid.splice(y, 1);
+          grid.unshift(Array(GRID_WIDTH).fill(null));
+          lines++;
+          y++;
+        }
+      }
+      
+      if (lines > 0) {
+        linesCleared += lines;
+        let lineBonus = [0, 100, 300, 500, 800][lines];
+        score += lineBonus * level;
+        
+        if (linesCleared >= level * 10) {
+          level++;
+          fallSpeed = Math.max(8, fallSpeed - 4);
+        }
+      }
+    }
+
+    function rotatePiece() {
+      if (!currentPiece) return;
+      let newShape = Array(currentPiece.shape[0].length).fill().map(() => Array(currentPiece.shape.length).fill(0));
+      for (let y = 0; y < currentPiece.shape.length; y++) {
+        for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          newShape[x][currentPiece.shape.length - 1 - y] = currentPiece.shape[y][x];
+        }
+      }
+      let newPiece = { ...currentPiece, shape: newShape };
+      if (isValidPosition(newPiece)) {
+        currentPiece.shape = newShape;
+      }
+    }
+
+    function updateInfo() {
+      document.getElementById('score').textContent = score.toLocaleString();
+      document.getElementById('level').textContent = level;
+      document.getElementById('lines').textContent = linesCleared;
+    }
+
+    function showGameOver() {
+      document.getElementById('finalScore').textContent = score.toLocaleString();
+      document.getElementById('gameOverScreen').style.display = 'block';
+    }
+
+    function restartGame() {
+      gameOver = false;
+      score = 0;
+      level = 1;
+      linesCleared = 0;
+      fallSpeed = 60;
+      particles = [];
+      document.getElementById('gameOverScreen').style.display = 'none';
+      initGrid();
+      spawnPiece();
+      spawnNextPiece();
+    }
+
+    function keyPressed() {
+      if (gameOver || !currentPiece) return;
+      if (keyCode === LEFT_ARROW && moveCooldown <= 0) {
+        let newPiece = { ...currentPiece, x: currentPiece.x - 1 };
+        if (isValidPosition(newPiece)) {
+          currentPiece.x--;
+          moveCooldown = MOVE_COOLDOWN_MAX;
+        }
+      } else if (keyCode === RIGHT_ARROW && moveCooldown <= 0) {
+        let newPiece = { ...currentPiece, x: currentPiece.x + 1 };
+        if (isValidPosition(newPiece)) {
+          currentPiece.x++;
+          moveCooldown = MOVE_COOLDOWN_MAX;
+        }
+      } else if (keyCode === UP_ARROW) {
+        rotatePiece();
+      } else if (keyCode === DOWN_ARROW) {
+        moveDown();
+      } else if (key === ' ') {
+        while (isValidPosition({ ...currentPiece, y: currentPiece.y + 1 })) {
+          currentPiece.y++;
+        }
+      }
+    }
+
+    function touchStarted() {
+      return false;
+    }
+  </script>
+</body>
+</html>
